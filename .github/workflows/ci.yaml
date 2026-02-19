@@ -1,0 +1,65 @@
+name: CI-CD
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+  security-events: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/gitops-fastapi
+
+jobs:
+  build-scan-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy FS scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: fs
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Set image tag
+        id: vars
+        run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Build Docker image
+        run: docker build -t $IMAGE_NAME:${{ steps.vars.outputs.TAG }} ./app
+
+      - name: Run Trivy image scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ steps.vars.outputs.TAG }}
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Push Docker image
+        run: docker push $IMAGE_NAME:${{ steps.vars.outputs.TAG }}
+
+      - name: Update Kubernetes deployment image
+        run: |
+          sed -i "s|image: .*|image: $IMAGE_NAME:${{ steps.vars.outputs.TAG }}|" k8s/base/deployment.yaml
+
+      - name: Commit and push manifest update
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add k8s/base/deployment.yaml
+          git commit -m "Update image to $IMAGE_NAME:${{ steps.vars.outputs.TAG }}" || echo "No changes"
+          git push
