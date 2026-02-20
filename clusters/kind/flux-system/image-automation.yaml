@@ -42,7 +42,7 @@ spec:
         name: fluxcdbot
       messageTemplate: 'chore: update image to {{range .Changed.Changes}}{{.NewValue}}{{end}}'
     push:
-      branch: main
+      branch: flux-image-updates
   update:
     path: ./k8s
     strategy: Setters
