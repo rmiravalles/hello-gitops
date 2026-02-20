@@ -25,6 +25,10 @@ This repository demonstrates:
 ├── clusters/
 │   └── kind/
 │       └── flux-system/    # FluxCD configuration for kind cluster
+│           ├── gotk-components.yaml
+│           ├── gotk-sync.yaml
+│           ├── kustomization.yaml
+│           └── image-automation.yaml  # Image update automation
 └── .github/
     └── workflows/
         └── ci.yaml         # CI/CD pipeline
@@ -100,6 +104,55 @@ flux check
 # Watch for reconciliation
 flux get kustomizations --watch
 ```
+
+## Image Automation
+
+This repository uses Flux Image Automation to automatically update the deployment manifest when new container images are pushed to the registry. This eliminates the need for CI pipelines to commit image tag changes.
+
+### How It Works
+
+Flux Image Automation consists of three components:
+
+| Component | Purpose |
+|-----------|---------|
+| **ImageRepository** | Scans the container registry (`ghcr.io/rmiravalles/gitops-fastapi`) at regular intervals to discover available image tags |
+| **ImagePolicy** | Defines the policy for selecting which image tag to use (e.g., latest git SHA, semver) |
+| **ImageUpdateAutomation** | Commits the selected image tag to the Git repository when a new image is detected |
+
+### Marker Comments
+
+Flux identifies which lines to update using special marker comments in the deployment manifest:
+
+```yaml
+image: ghcr.io/rmiravalles/gitops-fastapi:abc1234 # {"$imagepolicy": "flux-system:gitops-fastapi"}
+```
+
+The marker `{"$imagepolicy": "flux-system:gitops-fastapi"}` tells Flux to update this line using the `gitops-fastapi` ImagePolicy in the `flux-system` namespace.
+
+### Image Automation Commands
+
+```bash
+# Check if ImageRepository is scanning the registry
+flux get images repository -n flux-system
+
+# View which tag the ImagePolicy selected
+flux get images policy -n flux-system
+
+# Check ImageUpdateAutomation status
+flux get images update -n flux-system
+
+# Force image scan
+flux reconcile image repository gitops-fastapi -n flux-system
+
+# Force image update check
+flux reconcile image update flux-system -n flux-system
+```
+
+### Configuration Files
+
+The image automation is configured in:
+- `clusters/kind/flux-system/image-automation.yaml` - Contains ImageRepository, ImagePolicy, and ImageUpdateAutomation resources
+- `k8s/base/deployment.yaml` - Contains the marker comment for image updates
 
 ## Accessing the Application
 
