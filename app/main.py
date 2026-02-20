@@ -4,4 +4,4 @@ app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello from GitOps with Flux 🚀"}
+    return {"message": "Howdy Ho! This is GitOps with Flux 🚀"}
