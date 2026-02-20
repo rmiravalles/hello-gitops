@@ -15,9 +15,9 @@ spec:
       containers:
         - name: fastapi
 <<<<<<< HEAD
-          image: ghcr.io/rmiravalles/gitops-fastapi:2fdfd08
+          image: ghcr.io/rmiravalles/gitops-fastapi:8c7becc
 =======
-          image: ghcr.io/rmiravalles/gitops-fastapi:c8ae0fd # {"$imagepolicy": "flux-system:gitops-fastapi"}
+          image: ghcr.io/rmiravalles/gitops-fastapi:8c7becc
 >>>>>>> 0f2ee1d (chore: add image policy marker)
           ports:
             - containerPort: 8080
