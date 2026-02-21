@@ -34,6 +34,61 @@ This repository demonstrates:
         └── ci.yaml         # CI/CD pipeline
 ```
 
+## Kustomize Configuration
+
+This repository uses [Kustomize](https://kustomize.io/) to manage Kubernetes manifests. There are two `kustomization.yaml` files, each serving a different purpose:
+
+### File Locations and Purposes
+
+| File | Purpose |
+|------|---------|
+| `k8s/base/kustomization.yaml` | Defines the base application resources (deployment + service) |
+| `clusters/kind/flux-system/kustomization.yaml` | Flux cluster configuration that includes GitOps toolkit components and references the base app |
+
+### How It Works
+
+1. **Base Layer** (`k8s/base/`) - Contains reusable, environment-agnostic manifests:
+   ```yaml
+   apiVersion: kustomize.config.k8s.io/v1beta1
+   kind: Kustomization
+   resources:
+     - deployment.yaml
+     - service.yaml
+   ```
+
+2. **Cluster Layer** (`clusters/kind/flux-system/`) - Cluster-specific configuration that composes resources:
+   ```yaml
+   apiVersion: kustomize.config.k8s.io/v1beta1
+   kind: Kustomization
+   resources:
+     - gotk-components.yaml
+     - gotk-sync.yaml
+     - image-automation.yaml
+     - ../../../k8s/base  # References the base application
+   ```
+
+### Best Practices
+
+- **Separation of concerns**: Keep base manifests generic and reusable; put environment-specific configs in cluster directories
+- **DRY principle**: Define resources once in `base/`, reference them from multiple clusters/environments
+- **Multi-cluster support**: Create separate directories under `clusters/` for each environment (e.g., `clusters/dev/`, `clusters/staging/`, `clusters/prod/`)
+- **Overlays for customization**: Use Kustomize overlays to patch base resources with environment-specific values (replicas, resource limits, etc.)
+- **Consistent naming**: Always name the file `kustomization.yaml` (not `kustomization.yml`) for tooling compatibility
+
+### Extending for Multiple Environments
+
+To add a new environment (e.g., production), create:
+
+```
+clusters/
+├── kind/           # Development cluster
+│   └── flux-system/
+└── prod/           # Production cluster
+    └── flux-system/
+        ├── kustomization.yaml  # References k8s/base with prod overlays
+        └── ...
+```
+
 ## CI/CD Pipeline
 
 The GitHub Actions workflow consists of three jobs:
