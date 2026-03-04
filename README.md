@@ -170,11 +170,11 @@ clusters/
 
 The GitHub Actions workflow consists of three jobs:
 
-1. **Build** - Builds the Docker image and pushes to GitHub Container Registry (ghcr.io)
-2. **Scan** - Runs Trivy security scans on filesystem and container image
-3. **Deploy** - Updates the Kubernetes deployment manifest with the new image tag
+1. **Unit Tests** - Runs `pytest` against the repository tests
+2. **Build** - Builds the Docker image and pushes to GitHub Container Registry (ghcr.io)
+3. **Scan** - Runs Trivy security scans on filesystem and container image
 
-When code is pushed to `main`, the pipeline automatically builds a new image, scans it for vulnerabilities, and commits the updated image tag to `k8s/base/deployment.yaml`. FluxCD then detects this change and deploys it to the cluster.
+When code is pushed to `main`, the pipeline builds and scans a new image. Flux Image Automation then detects the new tag and updates `k8s/base/deployment.yaml` directly from the cluster-side controllers.
 
 ## Prerequisites
 
@@ -239,7 +239,7 @@ flux get kustomizations --watch
 
 ## Image Automation
 
-This repository uses Flux Image Automation to automatically update the deployment manifest when new container images are pushed to the registry. This eliminates the need for CI pipelines to commit image tag changes.
+This repository uses Flux Image Automation to automatically update the deployment manifest when new container images are pushed to the registry. CI only builds/scans/pushes images; Flux owns manifest updates.
 
 ### How It Works
 
@@ -260,6 +260,8 @@ image: ghcr.io/rmiravalles/gitops-fastapi:abc1234 # {"$imagepolicy": "flux-syste
 ```
 
 The marker `{"$imagepolicy": "flux-system:gitops-fastapi"}` tells Flux to update this line using the `gitops-fastapi` ImagePolicy in the `flux-system` namespace.
+
+In this repository, `ImageUpdateAutomation` pushes directly to `main`, so Flux updates are applied in the same branch that the cluster is reconciling.
 
 ### Image Automation Commands
 

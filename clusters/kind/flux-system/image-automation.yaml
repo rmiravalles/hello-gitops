@@ -1,5 +1,5 @@
 ---
-apiVersion: image.toolkit.fluxcd.io/v1beta2
+apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageRepository
 metadata:
   name: gitops-fastapi
@@ -8,7 +8,7 @@ spec:
   image: ghcr.io/rmiravalles/gitops-fastapi
   interval: 1m0s
 ---
-apiVersion: image.toolkit.fluxcd.io/v1beta2
+apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImagePolicy
 metadata:
   name: gitops-fastapi
@@ -22,7 +22,7 @@ spec:
     alphabetical:
       order: desc
 ---
-apiVersion: image.toolkit.fluxcd.io/v1beta1
+apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageUpdateAutomation
 metadata:
   name: flux-system
@@ -42,7 +42,7 @@ spec:
         name: fluxcdbot
       messageTemplate: 'chore: update image to {{range .Changed.Changes}}{{.NewValue}}{{end}}'
     push:
-      branch: flux-image-updates
+      branch: main
   update:
     path: ./k8s
     strategy: Setters
