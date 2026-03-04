@@ -185,6 +185,9 @@ The GitHub Actions workflow consists of three jobs:
 
 When code is pushed to `main`, the pipeline builds and scans a new image. Flux Image Automation then detects the new tag and updates `k8s/base/deployment.yaml` directly from the cluster-side controllers.
 
+> **Note:** The workflow uses `on.push.paths-ignore` for `k8s/base/deployment.yaml`.
+> This prevents Flux-generated image update commits from re-triggering CI and creating an infinite CI ↔ Flux loop.
+
 ## Prerequisites
 
 - Kubernetes cluster (kind, minikube, or any K8s cluster)
