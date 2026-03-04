@@ -248,7 +248,7 @@ Flux Image Automation consists of three components:
 | Component | Purpose |
 |-----------|---------|
 | **ImageRepository** | Scans the container registry (`ghcr.io/rmiravalles/gitops-fastapi`) at regular intervals to discover available image tags |
-| **ImagePolicy** | Defines the policy for selecting which image tag to use (e.g., latest git SHA, semver) |
+| **ImagePolicy** | Defines the policy for selecting which image tag to use (in this repo: highest numeric CI run tag) |
 | **ImageUpdateAutomation** | Commits the selected image tag to the Git repository when a new image is detected |
 
 ### Marker Comments
@@ -256,7 +256,7 @@ Flux Image Automation consists of three components:
 Flux identifies which lines to update using special marker comments in the deployment manifest:
 
 ```yaml
-image: ghcr.io/rmiravalles/gitops-fastapi:abc1234 # {"$imagepolicy": "flux-system:gitops-fastapi"}
+image: ghcr.io/rmiravalles/gitops-fastapi:1234 # {"$imagepolicy": "flux-system:gitops-fastapi"}
 ```
 
 The marker `{"$imagepolicy": "flux-system:gitops-fastapi"}` tells Flux to update this line using the `gitops-fastapi` ImagePolicy in the `flux-system` namespace.

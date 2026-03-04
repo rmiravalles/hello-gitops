@@ -17,9 +17,9 @@ spec:
   imageRepositoryRef:
     name: gitops-fastapi
   filterTags:
-    pattern: '^[a-f0-9]{7}$'  # Matches short git SHA tags like ce5e6b7
+    pattern: '^[0-9]+$'  # Matches numeric CI run number tags
   policy:
-    alphabetical:
+    numerical:
       order: desc
 ---
 apiVersion: image.toolkit.fluxcd.io/v1

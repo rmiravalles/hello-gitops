@@ -48,7 +48,7 @@ jobs:
 
       - name: Set image tag
         id: vars
-        run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+        run: echo "TAG=${{ github.run_number }}" >> $GITHUB_OUTPUT
 
       - name: Build Docker image
         run: docker build -t $IMAGE_NAME:${{ steps.vars.outputs.TAG }} ./app
