@@ -2,6 +2,38 @@
 
 A GitOps demo repository showcasing continuous deployment of a FastAPI application to Kubernetes using FluxCD.
 
+## Table of Contents
+
+- [Hello GitOps](#hello-gitops)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Quick Start (Dev + Prod)](#quick-start-dev--prod)
+  - [Repository Structure](#repository-structure)
+  - [Kustomize Configuration](#kustomize-configuration)
+    - [File Locations and Purposes](#file-locations-and-purposes)
+    - [How It Works](#how-it-works)
+  - [Environment Overlays (Dev vs Prod)](#environment-overlays-dev-vs-prod)
+    - [How overlays control the environment](#how-overlays-control-the-environment)
+    - [Access both environments](#access-both-environments)
+    - [Local testing without Kubernetes](#local-testing-without-kubernetes)
+    - [Best Practices](#best-practices)
+    - [Extending for Multiple Environments](#extending-for-multiple-environments)
+  - [CI/CD Pipeline](#cicd-pipeline)
+  - [Prerequisites](#prerequisites)
+  - [Installing FluxCD](#installing-fluxcd)
+    - [1. Install the Flux CLI](#1-install-the-flux-cli)
+    - [2. Check Prerequisites](#2-check-prerequisites)
+    - [3. Export GitHub Token](#3-export-github-token)
+    - [4. Bootstrap FluxCD](#4-bootstrap-fluxcd)
+    - [5. Verify Installation](#5-verify-installation)
+  - [Image Automation](#image-automation)
+    - [How It Works](#how-it-works-1)
+    - [Marker Comments](#marker-comments)
+    - [Image Automation Commands](#image-automation-commands)
+    - [Configuration Files](#configuration-files)
+  - [Accessing the Application](#accessing-the-application)
+  - [Useful Flux Commands](#useful-flux-commands)
+
 ## Overview
 
 This repository demonstrates:
