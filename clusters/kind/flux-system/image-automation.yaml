@@ -17,7 +17,8 @@ spec:
   imageRepositoryRef:
     name: gitops-fastapi
   filterTags:
-    pattern: '^[0-9]+$'  # Matches numeric CI run number tags
+    pattern: '^(?P<num>[0-9]+)$'  # Matches numeric CI run number tags
+    extract: '$num'
   policy:
     numerical:
       order: desc
