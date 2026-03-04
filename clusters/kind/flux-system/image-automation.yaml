@@ -21,7 +21,7 @@ spec:
     extract: '$num'
   policy:
     numerical:
-      order: desc
+      order: asc
 ---
 apiVersion: image.toolkit.fluxcd.io/v1
 kind: ImageUpdateAutomation
