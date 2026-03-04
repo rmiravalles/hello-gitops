@@ -6,18 +6,20 @@ A GitOps demo repository showcasing continuous deployment of a FastAPI applicati
 
 This repository demonstrates:
 - A simple FastAPI application containerized with Docker
-- CI/CD pipeline using GitHub Actions (build, scan, deploy)
+- CI/CD pipeline using GitHub Actions (unit tests, build, scan)
 - GitOps-based deployment with FluxCD
 - Automated image updates to Kubernetes manifests
 
-## Quick Start (Dev/Prod)
+## Quick Start (Dev + Prod)
 
-| Environment | Flux path in `clusters/kind/flux-system/kustomization.yaml` | `APP_ENV` | Served page |
-|-------------|--------------------------------------------------------------|-----------|-------------|
-| Dev         | `../../../k8s/overlays/dev`                                  | `dev`     | `app/index.dev.html` |
-| Prod        | `../../../k8s/overlays/prod`                                 | `prod`    | `app/index.prod.html` |
+Both overlays are reconciled at the same time and deployed into separate namespaces:
 
-After changing the path, apply the change and run:
+| Environment | Overlay path | Namespace | `APP_ENV` | Served page |
+|-------------|--------------|-----------|-----------|-------------|
+| Dev         | `../../../k8s/overlays/dev` | `dev` | `dev` | `app/index.dev.html` |
+| Prod        | `../../../k8s/overlays/prod` | `prod` | `prod` | `app/index.prod.html` |
+
+After committing changes, reconcile Flux:
 
 ```bash
 flux reconcile kustomization flux-system -n flux-system --with-source
@@ -40,9 +42,11 @@ flux reconcile kustomization flux-system -n flux-system --with-source
 │   │   └── kustomization.yaml
 │   └── overlays/           # Environment-specific overlays
 │       ├── dev/
+│       │   ├── namespace.yaml
 │       │   ├── deployment-patch.yaml
 │       │   └── kustomization.yaml
 │       └── prod/
+│           ├── namespace.yaml
 │           ├── deployment-patch.yaml
 │           └── kustomization.yaml
 ├── clusters/
@@ -87,7 +91,8 @@ This repository uses [Kustomize](https://kustomize.io/) to manage Kubernetes man
      - gotk-components.yaml
      - gotk-sync.yaml
      - image-automation.yaml
-     - ../../../k8s/overlays/dev  # References the dev overlay
+     - ../../../k8s/overlays/dev
+     - ../../../k8s/overlays/prod
    ```
 
 ## Environment Overlays (Dev vs Prod)
@@ -109,8 +114,10 @@ Each overlay patches the Deployment and sets `APP_ENV`:
 
 - `k8s/overlays/dev/deployment-patch.yaml` sets `APP_ENV=dev`
 - `k8s/overlays/prod/deployment-patch.yaml` sets `APP_ENV=prod`
+- `k8s/overlays/dev/kustomization.yaml` sets namespace `dev`
+- `k8s/overlays/prod/kustomization.yaml` sets namespace `prod`
 
-The cluster Kustomization currently points to the dev overlay:
+The cluster Kustomization includes both overlays:
 
 ```yaml
 resources:
@@ -118,19 +125,21 @@ resources:
   - gotk-sync.yaml
   - image-automation.yaml
   - ../../../k8s/overlays/dev
+  - ../../../k8s/overlays/prod
 ```
 
-### Switch between dev and prod
-
-Edit `clusters/kind/flux-system/kustomization.yaml` and change:
-
-- `../../../k8s/overlays/dev` → `../../../k8s/overlays/prod`
-
-Then reconcile Flux:
+### Access both environments
 
 ```bash
-flux reconcile kustomization flux-system -n flux-system --with-source
+# Dev version
+kubectl port-forward -n dev svc/fastapi 8080:80
+
+# Prod version (use a different local port)
+kubectl port-forward -n prod svc/fastapi 8081:80
 ```
+
+- Dev URL: `http://localhost:8080`
+- Prod URL: `http://localhost:8081`
 
 ### Local testing without Kubernetes
 
@@ -293,14 +302,19 @@ The image automation is configured in:
 Once deployed, access the FastAPI application:
 
 ```bash
-# Get the NodePort
-kubectl get svc fastapi
+# Check services in both namespaces
+kubectl get svc -n dev
+kubectl get svc -n prod
 
-# For kind, forward the port
-kubectl port-forward svc/fastapi 8080:80
+# Port-forward dev
+kubectl port-forward -n dev svc/fastapi 8080:80
 
-# Access the application
+# Port-forward prod (separate terminal)
+kubectl port-forward -n prod svc/fastapi 8081:80
+
+# Access both
 curl http://localhost:8080
+curl http://localhost:8081
 ```
 
 Expected response:
