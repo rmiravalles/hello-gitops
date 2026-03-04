@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: fastapi
-          image: ghcr.io/rmiravalles/gitops-fastapi:4de3aff
+          image: ghcr.io/rmiravalles/gitops-fastapi:2663b05
           ports:
             - containerPort: 8080
           resources:
