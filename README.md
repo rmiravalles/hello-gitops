@@ -10,18 +10,41 @@ This repository demonstrates:
 - GitOps-based deployment with FluxCD
 - Automated image updates to Kubernetes manifests
 
+## Quick Start (Dev/Prod)
+
+| Environment | Flux path in `clusters/kind/flux-system/kustomization.yaml` | `APP_ENV` | Served page |
+|-------------|--------------------------------------------------------------|-----------|-------------|
+| Dev         | `../../../k8s/overlays/dev`                                  | `dev`     | `app/index.dev.html` |
+| Prod        | `../../../k8s/overlays/prod`                                 | `prod`    | `app/index.prod.html` |
+
+After changing the path, apply the change and run:
+
+```bash
+flux reconcile kustomization flux-system -n flux-system --with-source
+```
+
 ## Repository Structure
 
 ```
 ├── app/                    # Application source code
 │   ├── main.py             # FastAPI application
+│   ├── index.html          # Fallback/default HTML page
+│   ├── index.dev.html      # Development HTML page
+│   ├── index.prod.html     # Production HTML page
 │   ├── Dockerfile          # Container build instructions
 │   └── requirements.txt    # Python dependencies
 ├── k8s/
-│   └── base/               # Kubernetes manifests
-│       ├── deployment.yaml # Application deployment
-│       ├── service.yaml    # NodePort service
-│       └── kustomization.yaml
+│   ├── base/               # Base Kubernetes manifests
+│   │   ├── deployment.yaml # Application deployment
+│   │   ├── service.yaml    # NodePort service
+│   │   └── kustomization.yaml
+│   └── overlays/           # Environment-specific overlays
+│       ├── dev/
+│       │   ├── deployment-patch.yaml
+│       │   └── kustomization.yaml
+│       └── prod/
+│           ├── deployment-patch.yaml
+│           └── kustomization.yaml
 ├── clusters/
 │   └── kind/
 │       └── flux-system/    # FluxCD configuration for kind cluster
@@ -64,8 +87,62 @@ This repository uses [Kustomize](https://kustomize.io/) to manage Kubernetes man
      - gotk-components.yaml
      - gotk-sync.yaml
      - image-automation.yaml
-     - ../../../k8s/base  # References the base application
+     - ../../../k8s/overlays/dev  # References the dev overlay
    ```
+
+## Environment Overlays (Dev vs Prod)
+
+This repository now supports two visual variants of the app to simulate environments:
+
+- `app/index.dev.html` (dev background/theme)
+- `app/index.prod.html` (prod background/theme)
+
+The FastAPI app chooses which file to serve based on the `APP_ENV` environment variable:
+
+- `APP_ENV=dev` → serves `index.dev.html`
+- `APP_ENV=prod` → serves `index.prod.html`
+- Any other value (or missing) → serves `index.html` as fallback
+
+### How overlays control the environment
+
+Each overlay patches the Deployment and sets `APP_ENV`:
+
+- `k8s/overlays/dev/deployment-patch.yaml` sets `APP_ENV=dev`
+- `k8s/overlays/prod/deployment-patch.yaml` sets `APP_ENV=prod`
+
+The cluster Kustomization currently points to the dev overlay:
+
+```yaml
+resources:
+  - gotk-components.yaml
+  - gotk-sync.yaml
+  - image-automation.yaml
+  - ../../../k8s/overlays/dev
+```
+
+### Switch between dev and prod
+
+Edit `clusters/kind/flux-system/kustomization.yaml` and change:
+
+- `../../../k8s/overlays/dev` → `../../../k8s/overlays/prod`
+
+Then reconcile Flux:
+
+```bash
+flux reconcile kustomization flux-system -n flux-system --with-source
+```
+
+### Local testing without Kubernetes
+
+You can test quickly by setting `APP_ENV` before running Uvicorn:
+
+```bash
+# Dev
+APP_ENV=dev uvicorn main:app --host 0.0.0.0 --port 8080
+
+# Prod
+APP_ENV=prod uvicorn main:app --host 0.0.0.0 --port 8080
+```
 
 ### Best Practices
 
@@ -225,9 +302,8 @@ curl http://localhost:8080
 ```
 
 Expected response:
-```json
-{"message": "Hello from GitOps with Flux 🚀"}
-```
+
+- An HTML page (not JSON), with styling/background determined by `APP_ENV` and overlay selection.
 
 ## Useful Flux Commands
 

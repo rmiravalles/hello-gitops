@@ -4,4 +4,4 @@ resources:
 - gotk-components.yaml
 - gotk-sync.yaml
 - image-automation.yaml  # Requires image-reflector-controller and image-automation-controller
-- ../../../k8s/base
+- ../../../k8s/overlays/dev
