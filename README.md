@@ -298,6 +298,39 @@ After a CRD is installed, the new resource behaves like native Kubernetes object
 
 In short, a CRD defines the schema and API endpoint; a controller implements the behavior.
 
+Think of it in two parts:
+
+- **CRD (the definition)**: Declares a new API type, including group/version/kind, schema, and validation rules
+- **Custom Resource (the instance)**: An actual object of that type (for example, a specific `Kustomization`)
+
+Most CRDs follow the same object pattern as built-in Kubernetes resources:
+
+- `metadata`: name, namespace, labels, annotations
+- `spec`: desired state (what you want)
+- `status`: observed state (what the controller reports)
+
+Because CRDs use OpenAPI schemas, Kubernetes can validate fields at admission time and reject invalid objects before controllers process them.
+
+Example (conceptual):
+
+```yaml
+# Definition installed once in the cluster
+kind: CustomResourceDefinition
+spec:
+  group: example.com
+  names:
+    kind: Widget
+    plural: widgets
+
+# Instance created by users
+apiVersion: example.com/v1
+kind: Widget
+metadata:
+  name: my-widget
+spec:
+  size: large
+```
+
 ### How FluxCD Uses CRDs
 
 FluxCD is built on the Kubernetes controller pattern. During bootstrap, Flux installs both:
@@ -309,6 +342,20 @@ You declare desired GitOps state using Flux custom resources (for example `GitRe
 Flux controllers reconcile those resources by pulling manifests from Git/OCI, applying changes, and updating status fields.
 
 This is why Flux operations are visible as Kubernetes resources and conditions instead of opaque background jobs.
+
+At a high level, reconciliation looks like this:
+
+1. You apply/update a Flux custom resource (`spec` changes).
+2. The matching Flux controller detects the change.
+3. The controller performs work (clone source, build kustomize, apply manifests, scan image tags, etc.).
+4. The controller writes results to `status` and emits Kubernetes events.
+
+This feedback loop is central to GitOps: the cluster continuously converges to what is declared in Git.
+
+CRD versioning note:
+
+- CRDs can expose one or more API versions (for example `v1beta1`, `v1`), and controllers typically support a specific set.
+- Upgrading Flux may install updated CRD schemas; keeping CLI/controllers in supported versions avoids drift and validation issues.
 
 ### Typical Flux CRDs You Will See
 
@@ -322,8 +369,17 @@ Useful commands:
 # List Flux-related CRDs installed in the cluster
 kubectl get crd | grep 'toolkit.fluxcd.io\|image.toolkit.fluxcd.io\|helm.toolkit.fluxcd.io\|source.toolkit.fluxcd.io'
 
+# Inspect one CRD definition (schema, versions, printer columns)
+kubectl describe crd kustomizations.kustomize.toolkit.fluxcd.io
+
 # Show Flux custom resources currently running
 kubectl get gitrepositories,kustomizations,imagerepositories,imagepolicies,imageupdateautomations -A
+
+# Inspect one resource instance and its status conditions/events
+kubectl describe kustomization flux-system -n flux-system
+
+# View full YAML including status for troubleshooting
+kubectl get kustomization flux-system -n flux-system -o yaml
 ```
 
 ## Image Automation
