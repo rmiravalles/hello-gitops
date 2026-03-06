@@ -26,6 +26,10 @@ A GitOps demo repository showcasing continuous deployment of a FastAPI applicati
     - [3. Export GitHub Token](#3-export-github-token)
     - [4. Bootstrap FluxCD](#4-bootstrap-fluxcd)
     - [5. Verify Installation](#5-verify-installation)
+  - [CRDs in Kubernetes and FluxCD](#crds-in-kubernetes-and-fluxcd)
+    - [What Is a CRD?](#what-is-a-crd)
+    - [How FluxCD Uses CRDs](#how-fluxcd-uses-crds)
+    - [Typical Flux CRDs You Will See](#typical-flux-crds-you-will-see)
   - [Image Automation](#image-automation)
     - [How It Works](#how-it-works-1)
     - [Marker Comments](#marker-comments)
@@ -279,6 +283,47 @@ flux check
 
 # Watch for reconciliation
 flux get kustomizations --watch
+```
+
+## CRDs in Kubernetes and FluxCD
+
+### What Is a CRD?
+
+A **CustomResourceDefinition (CRD)** lets you extend the Kubernetes API with your own resource types.
+After a CRD is installed, the new resource behaves like native Kubernetes objects:
+
+- You can store it in YAML and apply it with `kubectl apply`
+- You can query it with `kubectl get`
+- Controllers can watch it and continuously reconcile desired state
+
+In short, a CRD defines the schema and API endpoint; a controller implements the behavior.
+
+### How FluxCD Uses CRDs
+
+FluxCD is built on the Kubernetes controller pattern. During bootstrap, Flux installs both:
+
+- Flux controllers (the runtime components)
+- Flux CRDs (the API objects those controllers watch)
+
+You declare desired GitOps state using Flux custom resources (for example `GitRepository` and `Kustomization`).
+Flux controllers reconcile those resources by pulling manifests from Git/OCI, applying changes, and updating status fields.
+
+This is why Flux operations are visible as Kubernetes resources and conditions instead of opaque background jobs.
+
+### Typical Flux CRDs You Will See
+
+- **Source management**: `GitRepository`, `OCIRepository`, `Bucket`
+- **Apply/reconcile**: `Kustomization`, `HelmRelease`
+- **Image automation**: `ImageRepository`, `ImagePolicy`, `ImageUpdateAutomation`
+
+Useful commands:
+
+```bash
+# List Flux-related CRDs installed in the cluster
+kubectl get crd | grep 'toolkit.fluxcd.io\|image.toolkit.fluxcd.io\|helm.toolkit.fluxcd.io\|source.toolkit.fluxcd.io'
+
+# Show Flux custom resources currently running
+kubectl get gitrepositories,kustomizations,imagerepositories,imagepolicies,imageupdateautomations -A
 ```
 
 ## Image Automation
