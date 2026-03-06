@@ -30,6 +30,10 @@ A GitOps demo repository showcasing continuous deployment of a FastAPI applicati
     - [What Is a CRD?](#what-is-a-crd)
     - [How FluxCD Uses CRDs](#how-fluxcd-uses-crds)
     - [Typical Flux CRDs You Will See](#typical-flux-crds-you-will-see)
+  - [Kustomize and FluxCD](#kustomize-and-fluxcd)
+    - [Why Use Kustomize](#why-use-kustomize)
+    - [How FluxCD and Kustomize Work Together](#how-fluxcd-and-kustomize-work-together)
+    - [Benefits in This Repository](#benefits-in-this-repository)
   - [Image Automation](#image-automation)
     - [How It Works](#how-it-works-1)
     - [Marker Comments](#marker-comments)
@@ -380,6 +384,62 @@ kubectl describe kustomization flux-system -n flux-system
 
 # View full YAML including status for troubleshooting
 kubectl get kustomization flux-system -n flux-system -o yaml
+```
+
+## Kustomize and FluxCD
+
+Kustomize and FluxCD complement each other:
+
+- **Kustomize** defines how manifests are composed and patched
+- **FluxCD** continuously runs that composition from Git and reconciles it to the cluster
+
+### Why Use Kustomize
+
+Kustomize helps you manage Kubernetes YAML without templating engines.
+
+Key benefits:
+
+- **Base + overlays model**: Keep shared manifests in one place and apply environment-specific changes with overlays
+- **Reduced duplication**: Reuse the same Deployment/Service definitions across `dev` and `prod`
+- **Safer changes**: Patch only what differs per environment (for example `APP_ENV`, namespace, replicas)
+- **Git-friendly diffs**: Changes are explicit YAML patches, which are easy to review in pull requests
+- **Tooling compatibility**: Native Kubernetes format, no custom DSL required
+
+### How FluxCD and Kustomize Work Together
+
+In this repo, the interaction flow is:
+
+1. Flux `source-controller` pulls the repository state from Git.
+2. Flux `kustomize-controller` reads `Kustomization` custom resources.
+3. For each `Kustomization`, Flux builds manifests from referenced `kustomization.yaml` paths.
+4. Kustomize composes base resources and applies overlays/patches.
+5. Flux applies the rendered manifests to the cluster and updates status conditions.
+
+This means Git stores the declarative source (`base` + `overlays`), while Flux applies the rendered outcome.
+
+### Benefits in This Repository
+
+This repository gets concrete advantages from the Kustomize + Flux model:
+
+- **Single app definition, multiple environments**: `k8s/base/` is reused by both `k8s/overlays/dev` and `k8s/overlays/prod`
+- **Clear separation of concerns**: App manifests live under `k8s/`, cluster/Flux wiring lives under `clusters/kind/flux-system/`
+- **Environment parity with controlled variance**: Both environments deploy the same app, differing only where intended (`APP_ENV`, namespace)
+- **Continuous reconciliation**: If cluster state drifts from Git, Flux converges it back automatically
+- **Composability for growth**: Additional overlays or clusters can be added without rewriting base manifests
+
+Useful commands:
+
+```bash
+# Preview rendered manifests locally before pushing
+kubectl kustomize k8s/overlays/dev
+kubectl kustomize k8s/overlays/prod
+
+# Inspect Flux Kustomizations and their readiness
+flux get kustomizations -A
+
+# Reconcile source + Kustomizations after a commit
+flux reconcile source git flux-system -n flux-system
+flux reconcile kustomization flux-system -n flux-system --with-source
 ```
 
 ## Image Automation
