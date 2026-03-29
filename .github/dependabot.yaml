@@ -1,0 +1,56 @@
+version: 2
+
+updates:
+  # Python dependencies (FastAPI + ecosystem)
+  - package-ecosystem: "pip"
+    directory: "/app"  # adjust if your app lives in /backend or similar
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+
+    open-pull-requests-limit: 5
+
+    # Group updates to reduce noise
+    groups:
+      fastapi-core:
+        patterns:
+          - "fastapi"
+          - "starlette"
+          - "pydantic"
+          - "uvicorn"
+      testing:
+        patterns:
+          - "pytest*"
+          - "httpx"
+          - "anyio"
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+    labels:
+      - "dependencies"
+      - "python"
+      - "fastapi"
+
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+    rebase-strategy: "auto"
+
+    # Be cautious with breaking changes in FastAPI stack
+    ignore:
+      - dependency-name: "fastapi"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pydantic"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions (CI/CD workflows)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
